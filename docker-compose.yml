@@ -1,0 +1,23 @@
+services:
+  ubuntu-honeypot:
+    image: php:8.3-apache
+    container_name: ubuntu-honeypot
+    restart: always
+    ports:
+      - "5000:80"
+    volumes:
+      - ./vulnerable-app:/var/www/html
+    command:
+      sh -c "
+        apt-get update &&
+        apt-get install -y mariadb-server default-mysql-client &&
+        service mariadb start &&
+        sleep 5 &&
+        mysql -uroot -e 'CREATE DATABASE IF NOT ESISTS securecode;' &&
+        mysqk -uroot -e 'CREATE USER IF NOT EXISTS \"hackshop\"@\"localhost\" IDENTIFIED BY \"hackshop\"; GRANT ALL PRIVILEGES ON securecode.* TO \"hackshop\"@\"localhost\"; FLUSH PRIVILEGES;' &&
+        mysql -u hackshop -phackshop securecode -e 'CREATE TABLE IF NOT EXISTS items (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(255), description TEXT);' &&
+        mysql -u hackshop -phackshop securecode -e 'INSERT INTO items (name, description) VALUES (\"Test Item\", \"Vulnerable test\");' &&
+        chown -R www-data:www-data /var/www/html &&
+        chmod -R 755 /var/www/html &&
+        echo '=== Honeypot state successful ! Visit http://localhost:50000/item/viewItem.php?id=1 ===' &&
+        apache2-foreground & sleep infinity"
